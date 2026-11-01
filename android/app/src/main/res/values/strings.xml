@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">BCF-OnSite</string>
+    <string name="title_activity_main">BCF-OnSite</string>
+    <string name="package_name">ch.schaerholzbau.bcfonsite</string>
+    <string name="custom_url_scheme">ch.schaerholzbau.bcfonsite</string>
+</resources>
