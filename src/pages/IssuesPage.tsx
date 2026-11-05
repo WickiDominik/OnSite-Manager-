@@ -6,6 +6,7 @@ import { BcfBadge, PriorityBadge, StatusBadge } from '../components/Badges';
 import { OfflineBanner, PageHeader } from '../components/Header';
 import { Sheet } from '../components/Sheet';
 import { useToast } from '../components/Toast';
+import { BIMCOLLAB_ENABLED } from '../lib/features';
 import { db } from '../lib/db';
 import {
   PRIORITY_LABEL,
@@ -167,7 +168,7 @@ function IssueCard({ issue, onClick }: { issue: Issue; onClick: () => void }) {
             <StatusBadge status={issue.status} />
             <PriorityBadge priority={issue.priority} />
             {issue.bcfGuid && <BcfBadge />}
-            {!issue.synced && <span className="badge b-unsynced">nicht synchronisiert</span>}
+            {BIMCOLLAB_ENABLED && !issue.synced && <span className="badge b-unsynced">nicht synchronisiert</span>}
           </div>
           {issue.location && (
             <div className="card-meta">

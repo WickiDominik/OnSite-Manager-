@@ -7,6 +7,7 @@ import { OfflineBanner, PageHeader } from '../components/Header';
 import { PhotoCapture } from '../components/PhotoCapture';
 import { PhotoEditor } from '../components/PhotoEditor';
 import { useToast } from '../components/Toast';
+import { BIMCOLLAB_ENABLED } from '../lib/features';
 import { db, deleteIssueCascade } from '../lib/db';
 import { STATUS_LABEL, type Issue, type IssueStatus, type Photo } from '../lib/types';
 import { formatDate, nowIso, uuid } from '../lib/util';
@@ -130,7 +131,7 @@ export function IssueDetailPage() {
             <StatusBadge status={issue.status} />
             <PriorityBadge priority={issue.priority} />
             {issue.bcfGuid && <BcfBadge />}
-            <SyncBadge synced={issue.synced} />
+            {BIMCOLLAB_ENABLED && <SyncBadge synced={issue.synced} />}
           </div>
           {issue.description && <p style={{ whiteSpace: 'pre-wrap', margin: '8px 0 12px' }}>{issue.description}</p>}
           <dl className="kv small">
@@ -146,14 +147,18 @@ export function IssueDetailPage() {
             <dd>{formatDate(issue.createdAt)}</dd>
             <dt>Geändert</dt>
             <dd>{formatDate(issue.updatedAt)}</dd>
-            <dt>Sync</dt>
-            <dd>
-              {issue.synced
-                ? issue.localOnly
-                  ? 'Nur lokal (ohne BimCollab-Bezug)'
-                  : `Synchronisiert ${formatDate(issue.syncedAt)}`
-                : 'Lokale Änderungen ausstehend'}
-            </dd>
+            {BIMCOLLAB_ENABLED && (
+              <>
+                <dt>Sync</dt>
+                <dd>
+                  {issue.synced
+                    ? issue.localOnly
+                      ? 'Nur lokal (ohne BimCollab-Bezug)'
+                      : `Synchronisiert ${formatDate(issue.syncedAt)}`
+                    : 'Lokale Änderungen ausstehend'}
+                </dd>
+              </>
+            )}
             {issue.bcfGuid && (
               <>
                 <dt>BCF-GUID</dt>
@@ -196,7 +201,7 @@ export function IssueDetailPage() {
                 <button className="del" aria-label="Foto löschen" onClick={() => deletePhoto(p)}>
                   <Trash2 size={16} />
                 </button>
-                {!p.synced && (
+                {BIMCOLLAB_ENABLED && !p.synced && (
                   <span className="flag badge b-unsynced" title="nicht synchronisiert">
                     <CloudOff size={12} />
                   </span>
@@ -208,7 +213,7 @@ export function IssueDetailPage() {
 
         {issue.comments && issue.comments.length > 0 && (
           <>
-            <div className="section-title">Kommentare aus BimCollab ({issue.comments.length})</div>
+            <div className="section-title">{BIMCOLLAB_ENABLED ? 'Kommentare aus BimCollab' : 'Kommentare'} ({issue.comments.length})</div>
             <div className="card">
               {issue.comments.map((c) => (
                 <div key={c.guid} className="comment">
@@ -231,7 +236,7 @@ export function IssueDetailPage() {
             onClick={async () => {
               await flushRemark();
               await persist({});
-              toast('Prüfbericht lokal gespeichert – wird beim nächsten Sync übertragen', 'success');
+              toast(BIMCOLLAB_ENABLED ? 'Prüfbericht lokal gespeichert – wird beim nächsten Sync übertragen' : 'Prüfbericht gespeichert', 'success');
             }}
           >
             <Save size={20} /> Speichern
@@ -263,5 +268,6 @@ function SaveIndicator({ state, lastSaved, synced }: { state: SaveState; lastSav
         <Check size={16} /> Gespeichert {lastSaved ? new Date(lastSaved).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''}
       </span>
     );
+  if (!BIMCOLLAB_ENABLED) return <span className="save-state">Lokal gespeichert</span>;
   return <span className="save-state">{synced ? 'Synchronisiert' : 'Lokal gespeichert, nicht synchronisiert'}</span>;
 }

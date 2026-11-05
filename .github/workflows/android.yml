@@ -35,6 +35,8 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # BimCollab vorübergehend aus; zum Einschalten Repository-Variable VITE_BIMCOLLAB_ENABLED=true setzen
+          VITE_BIMCOLLAB_ENABLED: ${{ vars.VITE_BIMCOLLAB_ENABLED || 'false' }}
 
       - name: Sync Capacitor
         run: npx cap sync android
