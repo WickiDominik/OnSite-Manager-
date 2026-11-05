@@ -39,6 +39,8 @@ Ohne lokale Android-Umgebung baut der GitHub-Workflow **Android APK** bei jedem 
 
 ## BimCollab
 
+> **Derzeit deaktiviert (lokaler Modus).** Login, Abgleich und Mandanten-Einstellungen sind ausgeblendet, bis eine eigene OAuth-Client-ID vorliegt. Die App arbeitet vollständig lokal; Daten werden per `.bcfzip` importiert und exportiert. Wieder einschalten: `VITE_BIMCOLLAB_ENABLED=true` in `.env` bzw. als GitHub-Repository-Variable (*Settings → Secrets and variables → Actions → Variables*) setzen.
+
 - Standard ist der BimCollab-Playground (`https://playground.bimcollab.com`).
 - Unter *Einstellungen → Mandanten-Einstellungen* lassen sich eigene URL, Client-ID, Client-Secret und Scopes hinterlegen.
 - Die Weiterleitungs-URL, die beim OAuth-Client registriert sein muss, wird dort angezeigt. In der Android-App ist das `https://localhost/`.

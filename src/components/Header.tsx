@@ -1,6 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BIMCOLLAB_ENABLED } from '../lib/features';
 import { useOnline } from '../lib/hooks';
 
 export function NetPill() {
@@ -43,10 +44,12 @@ export function PageHeader({ title, sub, back, actions }: { title: string; sub?:
 export function OfflineBanner() {
   const online = useOnline();
   if (online) return null;
+  // im lokalen Modus ist offline der Normalfall, kein Hinweis nötig
+  if (!BIMCOLLAB_ENABLED) return null;
   return (
     <div className="banner offline">
       <strong>Offline</strong>
-      <span className="grow small">Prüfberichte werden lokal gespeichert und beim nächsten Abgleich zu BimCollab übertragen.</span>
+      <span className="grow small">{BIMCOLLAB_ENABLED ? 'Prüfberichte werden lokal gespeichert und beim nächsten Abgleich zu BimCollab übertragen.' : 'Kein Problem: Alle Daten werden lokal auf dem Gerät gespeichert.'}</span>
     </div>
   );
 }

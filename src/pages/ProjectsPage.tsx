@@ -11,6 +11,7 @@ import { useToast } from '../components/Toast';
 import { exportBcfZip, importBcfZip } from '../lib/bcfZip';
 import { startLogin } from '../lib/bimcollab';
 import { db, deleteProjectCascade } from '../lib/db';
+import { BIMCOLLAB_ENABLED } from '../lib/features';
 import { useBimCollab, useOnline } from '../lib/hooks';
 import { PROJECT_STATUS_LABEL, type Project, type ProjectStatus } from '../lib/types';
 import { nowIso, safeFileName, saveFile, uuid } from '../lib/util';
@@ -64,7 +65,16 @@ export function ProjectsPage() {
 
       <main className="content">
         <OfflineBanner />
-        {!bim.loading && !bim.connected && (
+        {!BIMCOLLAB_ENABLED && (
+          <div className="banner info">
+            <span className="grow">
+              <strong>Lokaler Modus</strong>
+              <br />
+              <span className="small muted">Alle Daten bleiben auf diesem Gerät. Austausch per BCF-Datei (Import / Export im Projektmenü).</span>
+            </span>
+          </div>
+        )}
+        {BIMCOLLAB_ENABLED && !bim.loading && !bim.connected && (
           <div className="banner info">
             <span className="grow">
               <strong>BimCollab nicht verbunden</strong>
@@ -76,7 +86,7 @@ export function ProjectsPage() {
             </button>
           </div>
         )}
-        {bim.connected && (
+        {BIMCOLLAB_ENABLED && bim.connected && (
           <div className="banner ok">
             <span className="grow">
               <strong>BimCollab verbunden</strong>
@@ -108,7 +118,7 @@ export function ProjectsPage() {
             <p>
               Noch keine Projekte.
               <br />
-              Lege ein Projekt an, importiere eine BCF-Datei oder gleiche mit BimCollab ab.
+              {BIMCOLLAB_ENABLED ? 'Lege ein Projekt an, importiere eine BCF-Datei oder gleiche mit BimCollab ab.' : 'Lege ein Projekt an oder importiere eine BCF-Datei.'}
             </p>
           </div>
         )}
@@ -154,7 +164,7 @@ export function ProjectsPage() {
 
       {showNew && <NewProjectSheet onClose={() => setShowNew(false)} />}
       {showSettings && <SettingsSheet onClose={() => setShowSettings(false)} />}
-      {syncing && <SyncDialog onClose={() => setSyncing(false)} />}
+      {BIMCOLLAB_ENABLED && syncing && <SyncDialog onClose={() => setSyncing(false)} />}
       {menuFor && <ProjectMenu project={menuFor} onClose={() => setMenuFor(undefined)} />}
     </div>
   );

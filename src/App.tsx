@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useToast } from './components/Toast';
 import { completeLoginFromUrl } from './lib/bimcollab';
+import { BIMCOLLAB_ENABLED } from './lib/features';
 import { authEnabled, supabase, type Session } from './lib/platformAuth';
 import { AuthPage, NewPasswordPage } from './pages/AuthPage';
 import { IssueDetailPage } from './pages/IssueDetailPage';
@@ -16,6 +17,7 @@ export function App() {
 
   // finish a BimCollab OAuth redirect (…/?code=…&state=…)
   useEffect(() => {
+    if (!BIMCOLLAB_ENABLED) return;
     completeLoginFromUrl()
       .then((ok) => ok && toast('BimCollab-Konto verbunden', 'success'))
       .catch((e) => toast((e as Error).message, 'error'));

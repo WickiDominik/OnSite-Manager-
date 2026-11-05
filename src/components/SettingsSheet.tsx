@@ -9,6 +9,7 @@ import {
   startLogin,
   type TenantSettings,
 } from '../lib/bimcollab';
+import { BIMCOLLAB_ENABLED } from '../lib/features';
 import { useBimCollab, useOnline } from '../lib/hooks';
 import { authEnabled, signOut, supabase } from '../lib/platformAuth';
 import { Sheet } from './Sheet';
@@ -21,20 +22,29 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
     supabase?.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? undefined));
   }, []);
 
-  if (view === 'account') return <AccountSheet onClose={onClose} onBack={() => setView('menu')} />;
-  if (view === 'tenant') return <TenantSheet onClose={onClose} onBack={() => setView('menu')} />;
+  if (BIMCOLLAB_ENABLED && view === 'account') return <AccountSheet onClose={onClose} onBack={() => setView('menu')} />;
+  if (BIMCOLLAB_ENABLED && view === 'tenant') return <TenantSheet onClose={onClose} onBack={() => setView('menu')} />;
   return (
     <Sheet title="Einstellungen" onClose={onClose}>
-      <button className="menu-item" onClick={() => setView('account')}>
-        <User size={22} />
-        <span className="grow">BimCollab-Konto</span>
-        <ChevronRight size={20} className="muted" />
-      </button>
-      <button className="menu-item" onClick={() => setView('tenant')}>
-        <Building2 size={22} />
-        <span className="grow">Mandanten-Einstellungen</span>
-        <ChevronRight size={20} className="muted" />
-      </button>
+      {BIMCOLLAB_ENABLED ? (
+        <>
+          <button className="menu-item" onClick={() => setView('account')}>
+            <User size={22} />
+            <span className="grow">BimCollab-Konto</span>
+            <ChevronRight size={20} className="muted" />
+          </button>
+          <button className="menu-item" onClick={() => setView('tenant')}>
+            <Building2 size={22} />
+            <span className="grow">Mandanten-Einstellungen</span>
+            <ChevronRight size={20} className="muted" />
+          </button>
+        </>
+      ) : (
+        <p className="muted small">
+          Lokaler Modus: Die BimCollab-Anbindung ist vorübergehend deaktiviert. Daten werden auf dem Gerät gespeichert und per BCF-Datei
+          ausgetauscht.
+        </p>
+      )}
       {authEnabled && (
         <button
           className="menu-item"
