@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useToast } from './components/Toast';
 import { completeLoginFromUrl } from './lib/bimcollab';
+import { completeOneDriveLoginFromUrl } from './lib/cloud/onedrive';
 import { BIMCOLLAB_ENABLED } from './lib/features';
 import { authEnabled, supabase, type Session } from './lib/platformAuth';
 import { AuthPage, NewPasswordPage } from './pages/AuthPage';
@@ -15,12 +16,20 @@ export function App() {
   const [session, setSession] = useState<Session | null | undefined>(authEnabled ? undefined : null);
   const [recovery, setRecovery] = useState(false);
 
-  // finish a BimCollab OAuth redirect (…/?code=…&state=…)
+  // finish an OAuth redirect (…/?code=…&state=…): OneDrive first (it only takes its own state), then BimCollab
   useEffect(() => {
-    if (!BIMCOLLAB_ENABLED) return;
-    completeLoginFromUrl()
-      .then((ok) => ok && toast('BimCollab-Konto verbunden', 'success'))
-      .catch((e) => toast((e as Error).message, 'error'));
+    (async () => {
+      try {
+        const od = await completeOneDriveLoginFromUrl();
+        if (od) toast(`OneDrive verbunden: ${od.label}`, 'success');
+      } catch (e) {
+        toast((e as Error).message, 'error');
+      }
+      if (!BIMCOLLAB_ENABLED) return;
+      completeLoginFromUrl()
+        .then((ok) => ok && toast('BimCollab-Konto verbunden', 'success'))
+        .catch((e) => toast((e as Error).message, 'error'));
+    })();
   }, [toast]);
 
   useEffect(() => {

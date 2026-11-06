@@ -37,6 +37,9 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           # BimCollab vorübergehend aus; zum Einschalten Repository-Variable VITE_BIMCOLLAB_ENABLED=true setzen
           VITE_BIMCOLLAB_ENABLED: ${{ vars.VITE_BIMCOLLAB_ENABLED || 'false' }}
+          # optionale Vorgaben für den OneDrive-Import (sonst in der App eintragen)
+          VITE_ONEDRIVE_CLIENT_ID: ${{ vars.VITE_ONEDRIVE_CLIENT_ID }}
+          VITE_ONEDRIVE_TENANT: ${{ vars.VITE_ONEDRIVE_TENANT }}
 
       - name: Sync Capacitor
         run: npx cap sync android
