@@ -13,6 +13,7 @@ Mobil-optimierte App für Bauabnahmen und Mängelmanagement mit BimCollab-Anbind
 | 3D-BIM-Viewer | three.js + web-ifc, IFC pro Projekt hinterlegen (IFC-Button in der Mangelliste) oder ad-hoc laden, Vollbild, BCF-Kamerastandpunkte |
 | BimCollab | OAuth2 mit PKCE und Token-Erneuerung, Mandanten-Einstellungen (URL, Client-ID, Secret, sonst Playground), Abgleich mit Fortschritt |
 | BCF | Import von `.bcfzip` (Themen, Kommentare, Kameras, Snapshots), Export als BCF 2.1 inkl. Prüfdaten und Fotos |
+| Cloud-Import | Nextcloud (WebDAV, App-Passwort) und OneDrive/SharePoint (Microsoft Graph, OAuth2 + PKCE) verbinden, Ordner durchsuchen, `.bcfzip` als Projekt bzw. `.ifc` als Modell importieren |
 | Offline-First | Alles lokal in IndexedDB, Markierung „nicht synchronisiert“, Offline-Banner, Upload beim nächsten Sync |
 | Anmeldung | Optional über Supabase Auth (E-Mail/Passwort, Google, Passwort-Reset) |
 
@@ -50,6 +51,20 @@ Abgleich (Sync):
 1. Lokale Prüfberichte hochladen: Bemerkung als Kommentar, Fotos als Viewpoint-Snapshots, Prüfstatus als Topic-Status.
 2. Lokale Mängel ohne BimCollab-Bezug werden übersprungen und als erledigt (synchronisiert, „nur lokal“) markiert.
 3. Projekte und Themen inklusive Kamerastandpunkten und Kommentaren von BimCollab holen.
+
+## Cloud-Import (Nextcloud / OneDrive)
+
+*Einstellungen → Cloud-Speicher* verbindet beliebig viele Laufwerke. Importiert wird über den Button **Cloud** in der Projektliste (`.bcfzip` → neues Projekt, `.ifc` → neues Projekt mit Modell) oder das Wolken-Symbol in der Mängelliste (`.ifc` am bestehenden Projekt hinterlegen). Zugangsdaten bleiben lokal auf dem Gerät (IndexedDB).
+
+**Nextcloud:** Server-Adresse, Benutzername und App-Passwort (*Persönliche Einstellungen → Sicherheit → Geräte & Sitzungen → Neues App-Passwort*). Die Android-App spricht WebDAV über das app-eigene native Plugin `CloudHttp` (OkHttp), da CapacitorHttp kein `PROPFIND` kann. In der Browser-Version funktioniert Nextcloud nur, wenn der Server CORS erlaubt.
+
+**OneDrive / SharePoint:** braucht eine App-Registrierung in Microsoft Entra ID (portal.azure.com → *App-Registrierungen → Neue Registrierung*):
+
+1. Name z. B. „BCF-OnSite“, Kontotyp *Nur Konten in diesem Organisationsverzeichnis* (oder mehrinstanzenfähig, dann Tenant `common`).
+2. *Authentifizierung → Plattform hinzufügen → Mobile- und Desktopanwendungen*, benutzerdefinierte Umleitungs-URI `https://localhost/` (Android-App).
+3. Optional für die Browser-Version: Plattform *Single-Page-Anwendung* mit der URL der Web-App.
+4. *API-Berechtigungen*: Microsoft Graph, delegiert: `User.Read`, `Files.Read.All`, `offline_access` (kein Admin-Consent nötig; je nach Firmenrichtlinie einmal „Im Namen der Organisation zustimmen“).
+5. Kein Client-Secret anlegen. Die *Anwendungs-ID (Client-ID)* und die Firmen-Domain bzw. *Verzeichnis-ID* in der App unter *Einstellungen → Cloud-Speicher → OneDrive hinzufügen* eintragen (oder als Repository-Variablen `VITE_ONEDRIVE_CLIENT_ID` / `VITE_ONEDRIVE_TENANT` vorbelegen).
 
 ## Plattform-Anmeldung (optional)
 

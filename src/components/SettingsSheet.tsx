@@ -1,4 +1,4 @@
-import { Building2, ChevronRight, KeyRound, Link, LogOut, Unlink, User } from 'lucide-react';
+import { Building2, ChevronRight, Cloud, KeyRound, Link, LogOut, Unlink, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
   disconnect,
@@ -12,11 +12,12 @@ import {
 import { BIMCOLLAB_ENABLED } from '../lib/features';
 import { useBimCollab, useOnline } from '../lib/hooks';
 import { authEnabled, signOut, supabase } from '../lib/platformAuth';
+import { CloudSettingsSheet } from './CloudSettings';
 import { Sheet } from './Sheet';
 import { useToast } from './Toast';
 
-export function SettingsSheet({ onClose }: { onClose: () => void }) {
-  const [view, setView] = useState<'menu' | 'account' | 'tenant'>('menu');
+export function SettingsSheet({ onClose, initialView = 'menu' }: { onClose: () => void; initialView?: 'menu' | 'cloud' }) {
+  const [view, setView] = useState<'menu' | 'account' | 'tenant' | 'cloud'>(initialView);
   const [email, setEmail] = useState<string>();
   useEffect(() => {
     supabase?.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? undefined));
@@ -24,8 +25,19 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
 
   if (BIMCOLLAB_ENABLED && view === 'account') return <AccountSheet onClose={onClose} onBack={() => setView('menu')} />;
   if (BIMCOLLAB_ENABLED && view === 'tenant') return <TenantSheet onClose={onClose} onBack={() => setView('menu')} />;
+  if (view === 'cloud') return <CloudSettingsSheet onClose={onClose} onBack={() => setView('menu')} />;
   return (
     <Sheet title="Einstellungen" onClose={onClose}>
+      <button className="menu-item" onClick={() => setView('cloud')}>
+        <Cloud size={22} />
+        <span className="grow">
+          Cloud-Speicher
+          <span className="muted small" style={{ display: 'block', fontWeight: 400 }}>
+            Nextcloud / OneDrive für den Datei-Import
+          </span>
+        </span>
+        <ChevronRight size={20} className="muted" />
+      </button>
       {BIMCOLLAB_ENABLED ? (
         <>
           <button className="menu-item" onClick={() => setView('account')}>
@@ -40,7 +52,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
           </button>
         </>
       ) : (
-        <p className="muted small">
+        <p className="muted small" style={{ marginTop: 12 }}>
           Lokaler Modus: Die BimCollab-Anbindung ist vorübergehend deaktiviert. Daten werden auf dem Gerät gespeichert und per BCF-Datei
           ausgetauscht.
         </p>

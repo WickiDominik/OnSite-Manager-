@@ -10,8 +10,18 @@ const config: CapacitorConfig = {
   },
   server: {
     androidScheme: 'https',
-    // BimCollab login pages are opened inside the app so the OAuth redirect lands back here
-    allowNavigation: ['*.bimcollab.com', 'bimcollab.com', 'accounts.google.com', '*.supabase.co'],
+    // Login pages (BimCollab, Microsoft for OneDrive) are opened inside the app so the OAuth redirect lands back here
+    allowNavigation: [
+      '*.bimcollab.com',
+      'bimcollab.com',
+      'accounts.google.com',
+      '*.supabase.co',
+      'login.microsoftonline.com',
+      'login.microsoft.com',
+      'login.live.com',
+      'account.live.com',
+      'account.microsoft.com',
+    ],
   },
   plugins: {
     // Native HTTP avoids CORS restrictions when talking to the BimCollab BCF API

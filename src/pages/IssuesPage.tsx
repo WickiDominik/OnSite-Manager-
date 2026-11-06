@@ -1,8 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Box, ChevronRight, ClipboardList, FileUp, MapPin, Plus } from 'lucide-react';
+import { Box, ChevronRight, ClipboardList, Cloud, FileUp, MapPin, Plus } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { BcfBadge, PriorityBadge, StatusBadge } from '../components/Badges';
+import { CloudImportSheet } from '../components/CloudImportSheet';
 import { OfflineBanner, PageHeader } from '../components/Header';
 import { Sheet } from '../components/Sheet';
 import { useToast } from '../components/Toast';
@@ -25,6 +26,7 @@ export function IssuesPage() {
   const [statusFilter, setStatusFilter] = useState<IssueStatus | 'all'>('all');
   const [prioFilter, setPrioFilter] = useState<Priority | 'all'>('all');
   const [showNew, setShowNew] = useState(false);
+  const [showCloud, setShowCloud] = useState(false);
   const ifcRef = useRef<HTMLInputElement>(null);
 
   const project = useLiveQuery(() => db.projects.get(projectId), [projectId]);
@@ -75,6 +77,9 @@ export function IssuesPage() {
           <>
             <button className="icon-btn" aria-label="IFC hochladen" title={ifc ? `IFC: ${ifc.fileName}` : 'IFC hochladen'} onClick={() => ifcRef.current?.click()}>
               <FileUp color={ifc ? '#f5c400' : undefined} />
+            </button>
+            <button className="icon-btn" aria-label="IFC aus Cloud laden" title="IFC aus Cloud laden" onClick={() => setShowCloud(true)}>
+              <Cloud />
             </button>
             <button className="icon-btn" aria-label="3D-Viewer" onClick={() => nav(`/projects/${projectId}/viewer`)}>
               <Box />
@@ -154,6 +159,17 @@ export function IssuesPage() {
         <Plus /> Neuer Mangel
       </button>
       {showNew && <NewIssueSheet projectId={projectId} onClose={() => setShowNew(false)} />}
+      {showCloud && (
+        <CloudImportSheet
+          title="IFC aus Cloud laden"
+          accept={['.ifc']}
+          onClose={() => setShowCloud(false)}
+          onFile={async (f) => {
+            await uploadIfc(f);
+            setShowCloud(false);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,8 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Building2, Download, FileUp, MapPin, MoreVertical, Plus, RefreshCw, Settings, Trash2 } from 'lucide-react';
+import { Building2, Cloud, Download, FileUp, MapPin, MoreVertical, Plus, RefreshCw, Settings, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BcfBadge, ProjectStatusBadge } from '../components/Badges';
+import { CloudImportSheet } from '../components/CloudImportSheet';
 import { Brand, NetPill, OfflineBanner } from '../components/Header';
 import { SettingsSheet } from '../components/SettingsSheet';
 import { Sheet } from '../components/Sheet';
@@ -22,7 +23,8 @@ export function ProjectsPage() {
   const online = useOnline();
   const bim = useBimCollab();
   const [showNew, setShowNew] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showSettings, setShowSettings] = useState<false | 'menu' | 'cloud'>(false);
+  const [showCloud, setShowCloud] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [menuFor, setMenuFor] = useState<Project>();
   const importRef = useRef<HTMLInputElement>(null);
@@ -44,6 +46,7 @@ export function ProjectsPage() {
 
   const onImport = async (f?: File | null) => {
     if (!f) return;
+    if (/\.ifc$/i.test(f.name)) return importIfcAsProject(f);
     try {
       const r = await importBcfZip(f, f.name);
       toast(`„${r.projectName}“ importiert: ${r.issues} Mängel`, 'success');
@@ -53,12 +56,22 @@ export function ProjectsPage() {
     }
   };
 
+  /** IFC from the cloud on the project list: new project named after the model, with the model attached. */
+  const importIfcAsProject = async (f: File) => {
+    const ts = nowIso();
+    const p: Project = { id: uuid(), name: f.name.replace(/\.ifc$/i, ''), location: '', status: 'active', createdAt: ts, updatedAt: ts };
+    await db.projects.add(p);
+    await db.ifcModels.put({ projectId: p.id, fileName: f.name, data: f, uploadedAt: ts });
+    toast(`Projekt „${p.name}“ mit IFC-Modell angelegt`, 'success');
+    nav(`/projects/${p.id}`);
+  };
+
   return (
     <div className="app">
       <header className="header">
         <Brand />
         <NetPill />
-        <button className="icon-btn" aria-label="Einstellungen" onClick={() => setShowSettings(true)}>
+        <button className="icon-btn" aria-label="Einstellungen" onClick={() => setShowSettings('menu')}>
           <Settings />
         </button>
       </header>
@@ -108,6 +121,9 @@ export function ProjectsPage() {
           </div>
           <button className="btn sm" onClick={() => importRef.current?.click()}>
             <FileUp size={16} /> BCF importieren
+          </button>
+          <button className="btn sm" onClick={() => setShowCloud(true)}>
+            <Cloud size={16} /> Cloud
           </button>
           <input ref={importRef} type="file" accept=".bcfzip,.bcf,application/zip,application/octet-stream" hidden onChange={(e) => (onImport(e.target.files?.[0]), (e.target.value = ''))} />
         </div>
@@ -163,7 +179,18 @@ export function ProjectsPage() {
       </button>
 
       {showNew && <NewProjectSheet onClose={() => setShowNew(false)} />}
-      {showSettings && <SettingsSheet onClose={() => setShowSettings(false)} />}
+      {showSettings && <SettingsSheet initialView={showSettings} onClose={() => setShowSettings(false)} />}
+      {showCloud && (
+        <CloudImportSheet
+          accept={['.bcfzip', '.bcf', '.ifc']}
+          onClose={() => setShowCloud(false)}
+          onOpenSettings={() => (setShowCloud(false), setShowSettings('cloud'))}
+          onFile={async (f) => {
+            await onImport(f);
+            setShowCloud(false);
+          }}
+        />
+      )}
       {BIMCOLLAB_ENABLED && syncing && <SyncDialog onClose={() => setSyncing(false)} />}
       {menuFor && <ProjectMenu project={menuFor} onClose={() => setMenuFor(undefined)} />}
     </div>
