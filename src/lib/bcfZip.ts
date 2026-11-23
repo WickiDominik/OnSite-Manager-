@@ -7,7 +7,7 @@ import {
   buildViewpoint,
   parseMarkup,
   parseProjectName,
-  parseViewpointCamera,
+  parseViewpoint,
 } from './bcfXml';
 import { bcfPriorityToLocal, bcfStatusToLocal, localPriorityToBcf, localStatusToBcf } from './mapping';
 import type { Issue, Photo, Project } from './types';
@@ -70,14 +70,17 @@ export async function importBcfZip(file: Blob, fileName: string): Promise<Import
     const id = already?.id ?? uuid();
 
     let camera: Issue['camera'];
+    let components: Issue['components'];
     const vpNames = topic.viewpoints.map((v) => v.viewpoint).filter(Boolean) as string[];
     if (!vpNames.length && zip.file(folder + 'viewpoint.bcfv')) vpNames.push('viewpoint.bcfv');
     for (const vp of vpNames) {
       const f = zip.file(folder + vp);
       if (!f) continue;
       try {
-        camera = parseViewpointCamera(await f.async('string'));
-        if (camera) break;
+        const vp = parseViewpoint(await f.async('string'));
+        camera ??= vp.camera;
+        components ??= vp.components;
+        if (camera && components) break;
       } catch {
         /* skip */
       }
@@ -105,6 +108,7 @@ export async function importBcfZip(file: Blob, fileName: string): Promise<Import
       bcfStatus: topic.status,
       bcfPriority: topic.priority,
       camera,
+      components,
       comments: topic.comments.map((c) => ({ guid: c.guid || uuid(), author: c.author, date: c.date, text: c.text })),
       author: topic.creationAuthor,
       synced: already?.synced ?? true,
@@ -140,9 +144,9 @@ export async function exportBcfZip(projectId: string, author = 'BCF-OnSite'): Pr
     const photos = await db.photos.where('issueId').equals(issue.id).sortBy('createdAt');
     const viewpoints: { guid: string; viewpoint?: string; snapshot?: string }[] = [];
 
-    if (issue.camera && photos.length === 0) {
+    if ((issue.camera || issue.components) && photos.length === 0) {
       const vg = uuid();
-      folder.file('viewpoint.bcfv', buildViewpoint(vg, issue.camera));
+      folder.file('viewpoint.bcfv', buildViewpoint(vg, issue.camera, issue.components));
       viewpoints.push({ guid: vg, viewpoint: 'viewpoint.bcfv' });
     }
     photos.forEach((p, i) => {
@@ -151,7 +155,7 @@ export async function exportBcfZip(projectId: string, author = 'BCF-OnSite'): Pr
       const ext = mime === 'image/png' ? 'png' : 'jpg';
       const vpName = i === 0 ? 'viewpoint.bcfv' : `viewpoint_${i}.bcfv`;
       const snapName = i === 0 ? `snapshot.${ext}` : `snapshot_${i}.${ext}`;
-      folder.file(vpName, buildViewpoint(vg, issue.camera));
+      folder.file(vpName, buildViewpoint(vg, issue.camera, issue.components));
       folder.file(snapName, base64, { base64: true });
       viewpoints.push({ guid: vg, viewpoint: vpName, snapshot: snapName });
     });

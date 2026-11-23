@@ -166,11 +166,13 @@ export function IssueDetailPage() {
               </>
             )}
           </dl>
-          {issue.camera && (
-            <button className="btn block" style={{ marginTop: 12 }} onClick={() => nav(`/projects/${projectId}/viewer?issue=${issue.id}`)}>
-              <Box size={20} /> Blickwinkel im 3D-Viewer öffnen
-            </button>
-          )}
+          <button
+            className={`btn block ${issue.camera || issue.components ? 'primary' : ''}`}
+            style={{ marginTop: 12 }}
+            onClick={() => nav(`/projects/${projectId}/viewer?issue=${issue.id}`)}
+          >
+            <Box size={20} /> {issue.camera || issue.components ? 'Im 3D-Modell zeigen' : 'Modellausschnitt im 3D-Viewer festlegen'}
+          </button>
         </section>
 
         <div className="section-title">Prüfstatus</div>

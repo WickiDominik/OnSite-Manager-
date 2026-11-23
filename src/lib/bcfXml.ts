@@ -1,4 +1,4 @@
-import type { BcfCamera, Vec3 } from './types';
+import type { BcfCamera, BcfComponents, Vec3 } from './types';
 
 export interface ParsedTopic {
   guid: string;
@@ -83,16 +83,59 @@ function vec(el: Element | undefined): Vec3 | undefined {
   return [v.x, v.y, v.z].every(Number.isFinite) ? v : undefined;
 }
 
-export function parseViewpointCamera(xml: string): BcfCamera | undefined {
+export interface ParsedViewpoint {
+  camera?: BcfCamera;
+  components?: BcfComponents;
+}
+
+const guidsOf = (el: Element | undefined): string[] =>
+  el
+    ? Array.from(el.children)
+        .filter((c) => c.localName === 'Component')
+        .map((c) => c.getAttribute('IfcGuid') ?? '')
+        .filter(Boolean)
+    : [];
+
+/** Parse a BCF viewpoint (.bcfv, BCF 2.0 / 2.1 / 3.0): perspective camera and components. */
+export function parseViewpoint(xml: string): ParsedViewpoint {
   const doc = parseXml(xml);
+  let camera: BcfCamera | undefined;
   const cam = NS_FREE(doc, 'PerspectiveCamera')[0];
-  if (!cam) return undefined;
-  const viewPoint = vec(child(cam, 'CameraViewPoint'));
-  const direction = vec(child(cam, 'CameraDirection'));
-  const upVector = vec(child(cam, 'CameraUpVector'));
-  if (!viewPoint || !direction || !upVector) return undefined;
-  const fov = Number(text(cam, 'FieldOfView'));
-  return { viewPoint, direction, upVector, fieldOfView: Number.isFinite(fov) && fov > 0 ? fov : 60 };
+  if (cam) {
+    const viewPoint = vec(child(cam, 'CameraViewPoint'));
+    const direction = vec(child(cam, 'CameraDirection'));
+    const upVector = vec(child(cam, 'CameraUpVector'));
+    const fov = Number(text(cam, 'FieldOfView'));
+    if (viewPoint && direction && upVector)
+      camera = { viewPoint, direction, upVector, fieldOfView: Number.isFinite(fov) && fov > 0 ? fov : 60 };
+  }
+
+  let components: BcfComponents | undefined;
+  const comps = NS_FREE(doc, 'Components')[0];
+  if (comps) {
+    const selection = guidsOf(child(comps, 'Selection'));
+    const vis = child(comps, 'Visibility');
+    let defaultVisibility = (vis?.getAttribute('DefaultVisibility') ?? 'true').toLowerCase() !== 'false';
+    let exceptions = guidsOf(child(vis, 'Exceptions'));
+    // BCF 2.0: <Components><Component IfcGuid Selected Visible/></Components>
+    const legacy = Array.from(comps.children).filter((c) => c.localName === 'Component' && c.getAttribute('IfcGuid'));
+    if (legacy.length) {
+      legacy.forEach((c) => {
+        const g = c.getAttribute('IfcGuid')!;
+        if (c.getAttribute('Selected') === 'true') selection.push(g);
+        if (c.getAttribute('Visible') === 'false') exceptions.push(g);
+      });
+      defaultVisibility = true;
+    }
+    exceptions = [...new Set(exceptions)];
+    if (selection.length || exceptions.length || !defaultVisibility)
+      components = { selection: [...new Set(selection)], defaultVisibility, exceptions };
+  }
+  return { camera, components };
+}
+
+export function parseViewpointCamera(xml: string): BcfCamera | undefined {
+  return parseViewpoint(xml).camera;
 }
 
 export function parseProjectName(xml: string): { id?: string; name?: string } {
@@ -158,9 +201,22 @@ const v3 = (tag: string, v: Vec3) => `    <${tag}>
       <Z>${v.z}</Z>
     </${tag}>`;
 
-export function buildViewpoint(guid: string, cam?: BcfCamera): string {
+const compList = (guids: string[], indent: string) =>
+  guids.map((g) => `${indent}<Component IfcGuid="${esc(g)}" />`).join('\n');
+
+function buildComponents(c?: BcfComponents): string {
+  if (!c || (!c.selection.length && !c.exceptions.length && c.defaultVisibility)) return '';
+  const sel = c.selection.length ? `\n    <Selection>\n${compList(c.selection, '      ')}\n    </Selection>` : '';
+  const exc = c.exceptions.length ? `\n      <Exceptions>\n${compList(c.exceptions, '        ')}\n      </Exceptions>\n    ` : '';
+  return `
+  <Components>${sel}
+    <Visibility DefaultVisibility="${c.defaultVisibility}">${exc}</Visibility>
+  </Components>`;
+}
+
+export function buildViewpoint(guid: string, cam?: BcfCamera, components?: BcfComponents): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
-<VisualizationInfo Guid="${guid}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">${
+<VisualizationInfo Guid="${guid}" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">${buildComponents(components)}${
     cam
       ? `
   <PerspectiveCamera>

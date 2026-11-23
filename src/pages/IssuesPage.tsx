@@ -1,11 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Box, ChevronRight, ClipboardList, Cloud, FileUp, MapPin, Plus } from 'lucide-react';
+import { Box, ChevronRight, ClipboardList, Cloud, FileUp, MapPin, Plus, Video } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { BcfBadge, PriorityBadge, StatusBadge } from '../components/Badges';
 import { CloudImportSheet } from '../components/CloudImportSheet';
 import { OfflineBanner, PageHeader } from '../components/Header';
-import { Sheet } from '../components/Sheet';
+import { NewIssueSheet } from '../components/NewIssueSheet';
 import { useToast } from '../components/Toast';
 import { BIMCOLLAB_ENABLED } from '../lib/features';
 import { db } from '../lib/db';
@@ -17,7 +17,7 @@ import {
   type IssueStatus,
   type Priority,
 } from '../lib/types';
-import { nowIso, uuid } from '../lib/util';
+import { nowIso } from '../lib/util';
 
 export function IssuesPage() {
   const { projectId = '' } = useParams();
@@ -150,7 +150,12 @@ export function IssuesPage() {
         )}
         <div className="list">
           {visible.map((i) => (
-            <IssueCard key={i.id} issue={i} onClick={() => nav(`/projects/${projectId}/issues/${i.id}`)} />
+            <IssueCard
+              key={i.id}
+              issue={i}
+              onClick={() => nav(`/projects/${projectId}/issues/${i.id}`)}
+              onShowInModel={() => nav(`/projects/${projectId}/viewer?issue=${i.id}`)}
+            />
           ))}
         </div>
       </main>
@@ -174,9 +179,10 @@ export function IssuesPage() {
   );
 }
 
-function IssueCard({ issue, onClick }: { issue: Issue; onClick: () => void }) {
+function IssueCard({ issue, onClick, onShowInModel }: { issue: Issue; onClick: () => void; onShowInModel: () => void }) {
+  const hasView = !!(issue.camera || issue.components);
   return (
-    <button className="card" onClick={onClick}>
+    <div className="card issue-card" role="button" tabIndex={0} onClick={onClick} onKeyDown={(e) => e.key === 'Enter' && onClick()}>
       <div className="row" style={{ alignItems: 'flex-start' }}>
         <div className="grow">
           <p className="card-title">{issue.title}</p>
@@ -194,68 +200,22 @@ function IssueCard({ issue, onClick }: { issue: Issue; onClick: () => void }) {
             </div>
           )}
         </div>
-        <ChevronRight className="muted" style={{ marginTop: 4 }} />
+        {hasView ? (
+          <button
+            className="icon-btn filled"
+            aria-label="Im 3D-Modell zeigen"
+            title="Im 3D-Modell zeigen"
+            onClick={(e) => {
+              e.stopPropagation();
+              onShowInModel();
+            }}
+          >
+            <Video color="#f5c400" />
+          </button>
+        ) : (
+          <ChevronRight className="muted" style={{ marginTop: 4 }} />
+        )}
       </div>
-    </button>
-  );
-}
-
-function NewIssueSheet({ projectId, onClose }: { projectId: string; onClose: () => void }) {
-  const nav = useNavigate();
-  const toast = useToast();
-  const [f, setF] = useState({ title: '', description: '', location: '', priority: 'medium' as Priority });
-  const save = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!f.title.trim()) return;
-    const ts = nowIso();
-    const issue: Issue = {
-      id: uuid(),
-      projectId,
-      title: f.title.trim(),
-      description: f.description.trim(),
-      location: f.location.trim(),
-      priority: f.priority,
-      status: 'open',
-      remark: '',
-      synced: false,
-      createdAt: ts,
-      updatedAt: ts,
-    };
-    await db.issues.add(issue);
-    await db.projects.update(projectId, { updatedAt: ts });
-    toast('Mangel erfasst', 'success');
-    onClose();
-    nav(`/projects/${projectId}/issues/${issue.id}`);
-  };
-  return (
-    <Sheet title="Neuer Mangel" onClose={onClose}>
-      <form className="stack" onSubmit={save}>
-        <label className="field">
-          <span>Titel *</span>
-          <input className="input" autoFocus required value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="z. B. Riss in Wandabschluss" />
-        </label>
-        <label className="field">
-          <span>Beschreibung</span>
-          <textarea className="textarea" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
-        </label>
-        <label className="field">
-          <span>Ort</span>
-          <input className="input" value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} placeholder="z. B. 2. OG, Bad Wohnung 3" />
-        </label>
-        <div className="field">
-          <span>Priorität</span>
-          <div className="seg">
-            {(['low', 'medium', 'high', 'critical'] as Priority[]).map((p) => (
-              <button type="button" key={p} className={f.priority === p ? 'on' : ''} onClick={() => setF({ ...f, priority: p })}>
-                {PRIORITY_LABEL[p]}
-              </button>
-            ))}
-          </div>
-        </div>
-        <button className="btn primary block" type="submit" disabled={!f.title.trim()}>
-          Mangel anlegen
-        </button>
-      </form>
-    </Sheet>
+    </div>
   );
 }
