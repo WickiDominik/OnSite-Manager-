@@ -156,6 +156,7 @@ async function upsertTopic(p: Project, t: ApiTopic) {
     bcfStatus: t.topic_status,
     bcfPriority: t.priority,
     camera,
+    components: existing?.components,
     comments,
     author: t.creation_author,
     synced: keepLocal ? false : true,
@@ -195,6 +196,13 @@ async function uploadReport(bcfProjectId: string, issue: Issue, extCache: Map<st
         camera_up_vector: issue.camera.upVector,
         field_of_view: issue.camera.fieldOfView,
         aspect_ratio: 1.33,
+      };
+    }
+    const c = issue.components;
+    if (c && (c.selection.length || c.exceptions.length || !c.defaultVisibility)) {
+      vp.components = {
+        selection: c.selection.map((g) => ({ ifc_guid: g })),
+        visibility: { default_visibility: c.defaultVisibility, exceptions: c.exceptions.map((g) => ({ ifc_guid: g })) },
       };
     }
     const created = await bcfApi<{ guid: string }>(`${base}/viewpoints`, { method: 'POST', body: JSON.stringify(vp) });

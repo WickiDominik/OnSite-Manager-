@@ -16,6 +16,15 @@ export interface BcfCamera {
   fieldOfView: number;
 }
 
+/** BCF viewpoint components: selected / hidden / isolated IFC elements (by IfcGuid). */
+export interface BcfComponents {
+  /** IfcGuids of the selected (highlighted) elements */
+  selection: string[];
+  /** BCF DefaultVisibility: true = all visible except `exceptions`, false = only `exceptions` visible */
+  defaultVisibility: boolean;
+  exceptions: string[];
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -52,6 +61,8 @@ export interface Issue {
   bcfStatus?: string;
   bcfPriority?: string;
   camera?: BcfCamera;
+  /** components of the BCF viewpoint (selection / visibility) */
+  components?: BcfComponents;
   comments?: IssueComment[];
   author?: string;
   /** false = local Prüfbericht changes that still need to be sent to BimCollab */
